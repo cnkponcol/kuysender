@@ -1,46 +1,62 @@
-# Secrets and local environment
+# Secrets
 .env
 .env.*
 !.env.example
 **/.env
 **/.env.*
 !**/.env.example
-*.pem
-*.key
-*.p12
-*.pfx
 
-# Dependencies
-vendor/
-node_modules/
-**/vendor/
+# Dependencies/build
 **/node_modules/
+**/vendor/
+**/public/build/
+**/public/hot
 
-# Laravel / runtime
-**/storage/framework/
-**/storage/logs/
-**/storage/app/private/
-**/bootstrap/cache/*.php
-# WA runtime/session data
-**/storage/sessions/
-**/storage/auth/
-**/.wwebjs_auth/
-**/.wwebjs_cache/
+# Runtime/cache/log/session
+**/storage/logs/*
+!**/storage/logs/.gitignore
+**/storage/framework/cache/**
+!**/storage/framework/cache/.gitignore
+**/storage/framework/sessions/**
+!**/storage/framework/sessions/.gitignore
+**/storage/framework/views/**
+!**/storage/framework/views/.gitignore
+wa-service/storage/sessions/**
+!wa-service/storage/sessions/.gitkeep
 
-# Generated files and backups
-*.log
-*.pid
+# Backup/work artifacts
+*.backup
+*.backup-*
+*.bak
+*.patch
+*.diff
+*.orig
+*~
+backups/
+
+# Editor/OS
+.DS_Store
+.idea/
+.vscode/
+
+# Laravel runtime uploads/cache
+/dashboard/storage/app/**
+!/dashboard/storage/app/.gitignore
+/dashboard/bootstrap/cache/*.php
+**/.phpunit.cache/
+**/.phpunit.result.cache
+
+# HERMES SECURE BACKUP
+.env
+.env.local
+.env.production
+.env.development
+*.sql
+*.sqlite
+*.db
 *.zip
 *.tar
 *.tar.gz
 *.bak
-*.old
-*.sqlite
-*.sqlite3
-*.db
-
-# OS/editor
-.DS_Store
-Thumbs.db
-.idea/
-.vscode/
+node_modules/
+vendor/
