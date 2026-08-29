@@ -1,0 +1,124 @@
+/* KuySender Android-friendly mobile shell. Desktop is intentionally untouched. */
+.kuys-mobile-nav { display: none; }
+
+@media (max-width: 991.98px) {
+  :root { --ks-mobile-nav-h: 68px; }
+  html, body { width: 100%; max-width: 100%; overflow-x: hidden; }
+  body { padding-bottom: calc(var(--ks-mobile-nav-h) + env(safe-area-inset-bottom)); }
+  .layout-wrapper, .layout-container, .layout-page, .content-wrapper { width: 100%; max-width: 100%; min-width: 0; }
+  .layout-page { padding-left: 0 !important; }
+  .container-fluid.container-p-y { padding: 12px !important; padding-bottom: 18px !important; }
+  .row > * { min-width: 0; }
+  img, video, canvas, svg { max-width: 100%; }
+
+  #layout-navbar {
+    width: calc(100% - 24px) !important;
+    margin: 10px 12px 8px !important;
+    padding: 9px 12px !important;
+    min-height: 54px;
+    border-radius: 18px;
+  }
+  #layout-navbar .layout-menu-toggle { display: none !important; }
+  #layout-navbar .navbar-nav-right { width: 100%; min-width: 0; }
+  #layout-navbar .nav-item .badge { max-width: 58vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #layout-navbar .navbar-nav .nav-link { padding-left: .45rem; padding-right: .45rem; }
+  #layout-navbar .ti-user-circle + * { max-width: 28vw; }
+
+  #layout-menu {
+    width: min(88vw, 340px) !important;
+    max-width: calc(100vw - 20px) !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    top: 0 !important;
+    overflow: hidden !important;
+    border-radius: 0 24px 24px 0;
+  }
+  #layout-menu .app-brand {
+    position: sticky; top: 0; z-index: 3;
+    background: inherit; min-height: 72px;
+    padding-left: 18px; padding-right: 14px;
+  }
+  #layout-menu .menu-inner {
+    height: calc(100dvh - 72px) !important;
+    max-height: calc(100dvh - 72px) !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: calc(96px + env(safe-area-inset-bottom)) !important;
+  }
+  #layout-menu .menu-link { min-height: 48px; border-radius: 13px; margin: 2px 10px; }
+  #layout-menu .menu-header { margin-top: 8px; }
+  #layout-menu select.main-device { width: calc(100% - 20px); margin: 0 10px; }
+
+  .card { border-radius: 18px; }
+  .card-body { padding: 16px; }
+  .modal-dialog { margin: 10px !important; max-width: calc(100vw - 20px) !important; }
+  .modal-content { border-radius: 20px; max-height: calc(100dvh - 20px); overflow: hidden; }
+  .modal-body { overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .offcanvas { max-width: 92vw; }
+  .table-responsive { max-width: 100%; overflow-x: auto; }
+  input, select, textarea, .form-control, .form-select { max-width: 100%; min-width: 0; }
+  .btn { min-height: 42px; }
+
+  .kuys-mobile-nav {
+    position: fixed; left: 8px; right: 8px; bottom: calc(8px + env(safe-area-inset-bottom));
+    height: var(--ks-mobile-nav-h); display: grid; grid-template-columns: repeat(5, 1fr);
+    align-items: center; z-index: 1095; padding: 6px 7px;
+    background: rgba(255,255,255,.96); border: 1px solid rgba(30,41,59,.08);
+    border-radius: 22px; box-shadow: 0 10px 35px rgba(15,23,42,.18);
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  }
+  .kuys-mobile-nav a {
+    min-width: 0; height: 54px; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 2px;
+    color: #64748b; text-decoration: none; border-radius: 16px;
+    font-size: 10px; font-weight: 600; line-height: 1.1;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .kuys-mobile-nav a i { font-size: 23px; line-height: 1; }
+  .kuys-mobile-nav a.active { color: #0b8f72; background: #e9f8f3; }
+  .kuys-mobile-nav a:active { transform: scale(.96); }
+
+  /* Inbox becomes a full-screen chat experience above the bottom nav. */
+  .wa-shell { width: 100%; max-width: 100%; height: calc(100dvh - 150px) !important; min-height: 0 !important; }
+  .wa-shell > .row { width: 100%; margin: 0; }
+  .wa-sidebar, .wa-pane { width: 100%; max-width: 100%; min-width: 0; }
+  .wa-side-head { padding: 12px !important; }
+  .wa-chat-row { padding: 12px 10px !important; }
+  .wa-topbar { min-width: 0; padding-left: 10px !important; padding-right: 10px !important; }
+  .wa-contact { min-width: 0; }
+  .wa-contact small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 48vw; }
+  .wa-messages { min-width: 0; padding: 12px 8px !important; }
+  .wa-bubble { max-width: 88% !important; }
+  .wa-compose { width: 100%; min-width: 0; padding: 8px !important; }
+  .wa-compose textarea { min-width: 0; font-size: 16px; }
+  .wa-send { min-width: 44px; width: 44px; height: 44px; }
+}
+
+@media (max-width: 991.98px) {
+  body { background: #f5f7fb; touch-action: manipulation; }
+  a, button, .btn, .menu-link { -webkit-tap-highlight-color: transparent; }
+  button, .btn, input, select, textarea { touch-action: manipulation; }
+  .content-wrapper { padding-bottom: env(safe-area-inset-bottom); }
+  .layout-overlay { position: fixed !important; inset: 0 !important; }
+
+  .card-header { padding: 15px 16px; }
+  .card-footer { padding: 14px 16px; }
+  .form-label { margin-bottom: 6px; font-weight: 600; }
+  .form-control, .form-select { min-height: 46px; border-radius: 12px; font-size: 16px; }
+  textarea.form-control { min-height: 96px; }
+  .input-group .form-control { min-width: 0; }
+  .input-group > .btn { min-width: 44px; }
+  .dropdown-menu { max-width: calc(100vw - 24px); }
+  .alert { border-radius: 14px; }
+
+  .pagination { flex-wrap: wrap; gap: 4px; }
+  .page-link { min-width: 40px; min-height: 40px; display: grid; place-items: center; }
+  .btn-group { max-width: 100%; flex-wrap: wrap; }
+  .nav-tabs, .nav-pills { max-width: 100%; overflow-x: auto; flex-wrap: nowrap; scrollbar-width: none; }
+  .nav-tabs::-webkit-scrollbar, .nav-pills::-webkit-scrollbar { display: none; }
+
+  #layout-menu form button.menu-link { padding-top: 0; padding-bottom: 0; }
+  #layout-menu .menu-inner > .menu-item:last-child { margin-bottom: 22px; }
+}

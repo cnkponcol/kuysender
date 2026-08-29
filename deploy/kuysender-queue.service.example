@@ -1,0 +1,17 @@
+[Unit]
+Description=KuySender Laravel Queue Worker
+After=network.target mysql.service
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/kuysender/dashboard
+ExecStart=/usr/bin/php artisan queue:work database --queue=messages,webhooks,broadcasts,default --sleep=2 --tries=5 --timeout=120 --max-time=3600
+Restart=always
+RestartSec=5
+KillSignal=SIGTERM
+TimeoutStopSec=360
+
+[Install]
+WantedBy=multi-user.target

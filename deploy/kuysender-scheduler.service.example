@@ -1,0 +1,10 @@
+[Unit]
+Description=KuySender Laravel Scheduler Tick
+After=network.target
+
+[Service]
+Type=oneshot
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/kuysender/dashboard
+ExecStart=/usr/bin/php artisan schedule:run --no-interaction

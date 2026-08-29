@@ -1,0 +1,11 @@
+[Unit]
+Description=Run KuySender Laravel Scheduler Every Minute
+
+[Timer]
+OnCalendar=*-*-* *:*:00
+Persistent=true
+AccuracySec=1s
+Unit=kuysender-scheduler.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,46 @@
+# Secrets and local environment
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Dependencies
+vendor/
+node_modules/
+**/vendor/
+**/node_modules/
+
+# Laravel / runtime
+**/storage/framework/
+**/storage/logs/
+**/storage/app/private/
+**/bootstrap/cache/*.php
+# WA runtime/session data
+**/storage/sessions/
+**/storage/auth/
+**/.wwebjs_auth/
+**/.wwebjs_cache/
+
+# Generated files and backups
+*.log
+*.pid
+*.zip
+*.tar
+*.tar.gz
+*.bak
+*.old
+*.sqlite
+*.sqlite3
+*.db
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

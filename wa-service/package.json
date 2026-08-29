@@ -1,0 +1,23 @@
+{
+  "name": "kuysender-wa-service",
+  "version": "5.0.0",
+  "private": true,
+  "description": "Private multi-device WhatsApp engine for KuySender",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "check": "node --check src/index.js && node --check src/config.js && node --check src/db-auth-state.js && node --check src/session-manager.js && node --check src/event-reporter.js && node --check src/security.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "7.0.0-rc14",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "helmet": "^8.0.0",
+    "mysql2": "^3.24.2",
+    "pino": "^9.6.0",
+    "qrcode": "^1.5.4"
+  }
+}
