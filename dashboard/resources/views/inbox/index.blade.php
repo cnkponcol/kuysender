@@ -27,8 +27,8 @@
     .wa-date{text-align:center;margin:14px 0}.wa-date span{display:inline-block;background:#fff;padding:5px 11px;border-radius:8px;font-size:.72rem;color:#54656f;box-shadow:0 1px 1px rgba(0,0,0,.08)}
     .wa-compose{background:#f0f2f5;padding:9px 11px;display:flex;gap:8px;align-items:flex-end;flex:none}.wa-compose textarea{resize:none;min-height:42px;max-height:120px;border:0;border-radius:22px;padding:10px 15px;box-shadow:none}.wa-send{width:43px;height:43px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none}
     .wa-empty{height:100%;display:flex;align-items:center;justify-content:center;text-align:center;color:#667781;background:#f7f9fa}.wa-empty i{font-size:4rem;color:#b7c3c8}
-    .wa-back{color:#fff;font-size:1.35rem;display:none}.wa-takeover .btn{border-color:rgba(255,255,255,.45);color:#fff;background:rgba(255,255,255,.12)}
-    @media(max-width:991.98px){.wa-shell{height:calc(100vh - 7.5rem);min-height:560px;border-radius:0}.wa-sidebar{border-right:0}.wa-back{display:inline-flex}.wa-messages{padding:14px 9px}.wa-bubble{max-width:86%}.wa-takeover .btn span{display:none}}
+    .wa-back{color:#fff;font-size:1.35rem;display:none}.wa-actions{display:flex;align-items:center;gap:6px;flex:none}.wa-actions form{margin:0}.wa-actions .btn{border-color:rgba(255,255,255,.45);color:#fff;background:rgba(255,255,255,.12)}.wa-actions .wa-delete-chat:hover{background:#dc3545;border-color:#dc3545;color:#fff}
+    @media(max-width:991.98px){.wa-shell{height:calc(100vh - 7.5rem);min-height:560px;border-radius:0}.wa-sidebar{border-right:0}.wa-back{display:inline-flex}.wa-messages{padding:14px 9px}.wa-bubble{max-width:86%}.wa-actions .btn span{display:none}.wa-actions .btn{padding:.36rem .5rem}}
 </style>
 @endpush
 
@@ -76,12 +76,20 @@
                     <a href="{{ route('inbox') }}" class="wa-back"><i class="ti ti-arrow-left"></i></a>
                     <div class="wa-avatar sm">{{ $initial }}</div>
                     <div class="wa-contact"><strong>{{ $displayName }}</strong><small>{{ $selectedJid }}</small></div>
-                    <form class="wa-takeover" method="post" action="{{ route('inbox.takeover') }}">
-                        @csrf
-                        <input type="hidden" name="chat_jid" value="{{ $selectedJid }}">
-                        <input type="hidden" name="enabled" value="{{ $selectedContact?->human_takeover ? 0 : 1 }}">
-                        <button class="btn btn-sm"><i class="ti {{ $selectedContact?->human_takeover ? 'ti-robot' : 'ti-user-check' }} me-1"></i><span>{{ $selectedContact?->human_takeover ? 'Aktifkan AI' : 'Ambil Alih' }}</span></button>
-                    </form>
+                    <div class="wa-actions">
+                        <form class="wa-takeover" method="post" action="{{ route('inbox.takeover') }}">
+                            @csrf
+                            <input type="hidden" name="chat_jid" value="{{ $selectedJid }}">
+                            <input type="hidden" name="enabled" value="{{ $selectedContact?->human_takeover ? 0 : 1 }}">
+                            <button class="btn btn-sm"><i class="ti {{ $selectedContact?->human_takeover ? 'ti-robot' : 'ti-user-check' }} me-1"></i><span>{{ $selectedContact?->human_takeover ? 'Aktifkan AI' : 'Ambil Alih' }}</span></button>
+                        </form>
+                        <form method="post" action="{{ route('inbox.delete') }}" onsubmit="return confirm('Hapus seluruh pesan di chat ini dari Inbox KuySender? Pesan di WhatsApp HP tidak ikut terhapus.')">
+                            @csrf
+                            @method('DELETE')
+                            <input type="hidden" name="chat_jid" value="{{ $selectedJid }}">
+                            <button class="btn btn-sm wa-delete-chat" type="submit" title="Hapus chat"><i class="ti ti-trash me-1"></i><span>Hapus</span></button>
+                        </form>
+                    </div>
                 </div>
                 <div class="wa-messages" id="wa-messages">
                     @foreach($messages as $message)

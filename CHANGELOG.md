@@ -24,3 +24,18 @@
 - Fresh rc14 QR/device pairing verified end-to-end: inbound, AutoResponder outbound, and manual Inbox outbound PASS.
 - Internal WhatsApp protocol events are filtered from Inbox.
 - Full PHP runtime ownership migration from `www-data` to `openclaw` requires root access.
+
+### Fixed - 2026-08-30
+- Normalized Laravel MySQL session timezone to `+07:00` so DB `NOW()` matches Asia/Jakarta application time.
+- Restarted the queue worker after clearing config cache; outbound processing remains healthy with latest status `server_ack`.
+
+### Fixed - 2026-08-30 WhatsApp conflict persistence
+- `connectionReplaced` / status 440 no longer deletes persisted WhatsApp auth.
+- Conflict reconnect now uses bounded exponential backoff and stops after repeated conflicts while preserving credentials.
+- Terminal logout handling for 401/403/411/500 remains unchanged.
+- Disconnect telemetry now reports whether auth was preserved and whether reconnect was actually scheduled.
+
+### Added - 2026-08-30 Public KuySender landing
+- Added public `/home` landing page to `wa.kuskuskuy.my.id` using the Next.js landing source as a static production export.
+- Kept the existing authenticated dashboard and login flow unchanged.
+- Landing assets are isolated under `/landing-home` to avoid collisions with Laravel dashboard assets.

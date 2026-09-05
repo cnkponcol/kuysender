@@ -15,6 +15,14 @@ use App\Http\Controllers\PhonebookController;
 use App\Http\Controllers\SingleSender;
 use Illuminate\Support\Facades\Route;
 
+Route::get('home', function () {
+    return response()->make(
+        file_get_contents(resource_path('views/landing/home.html')),
+        200,
+        ['Content-Type' => 'text/html; charset=UTF-8']
+    );
+})->name('landing.home');
+
 Route::middleware('guest')->group(function () {
     Route::get('login', [AuthController::class, 'login'])->name('login');
     Route::post('login', [AuthController::class, 'store'])->name('login.store');
@@ -45,6 +53,7 @@ Route::middleware('auth')->group(function () {
     Route::prefix('inbox')->group(function () {
         Route::get('/', [InboxController::class, 'index'])->name('inbox');
         Route::post('/reply', [InboxController::class, 'reply'])->name('inbox.reply');
+        Route::delete('/chat', [InboxController::class, 'deleteChat'])->name('inbox.delete');
         Route::post('/takeover', [InboxController::class, 'takeover'])->name('inbox.takeover');
     });
 

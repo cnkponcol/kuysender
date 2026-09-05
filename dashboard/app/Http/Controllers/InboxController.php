@@ -116,6 +116,24 @@ class InboxController extends Controller
 
         return back()->with('success', 'Reply sent.');
     }
+    public function deleteChat(Request $request)
+    {
+        $session = $this->main($request);
+        $data = $request->validate([
+            'chat_jid' => ['required', 'string', 'max:100'],
+        ]);
+
+        $deleted = Message::where('user_id', $request->user()->id)
+            ->where('session_id', $session->id)
+            ->where('chat_jid', $data['chat_jid'])
+            ->delete();
+
+        return redirect()->route('inbox')->with(
+            'success',
+            $deleted > 0 ? 'Chat berhasil dihapus dari Inbox KuySender.' : 'Chat sudah kosong.'
+        );
+    }
+
     public function takeover(Request $request)
     {
         $session = $this->main($request);

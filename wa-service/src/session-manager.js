@@ -19,6 +19,15 @@ const { cleanPhone, fetchRemoteBuffer, readSafeLocalFile, validateSessionId } = 
 const logger = pino({ level: process.env.LOG_LEVEL || 'info' });
 const silent = pino({ level: 'silent' });
 const INTERNAL_MESSAGE_TYPES = new Set(['protocolMessage', 'senderKeyDistributionMessage']);
+const TERMINAL_DISCONNECT_CODES = new Set([
+  DisconnectReason.loggedOut,
+  DisconnectReason.forbidden,
+  DisconnectReason.multideviceMismatch,
+  DisconnectReason.badSession,
+]);
+const PRESERVE_AUTH_RECONNECT_CODES = new Set([
+  DisconnectReason.connectionReplaced,
+]);
 
 function contactSnapshot(contact = {}) {
   const jid = String(contact.id || contact.jid || '').trim();
@@ -65,6 +74,7 @@ class SessionManager {
     this.sessions = new Map();
     this.reconnectAttempts = new Map();
     this.reconnectTimers = new Map();
+    this.reconnectBlockedUntil = new Map();
     this.connectPromises = new Map();
     this.reconcileTimer = null;
   }
@@ -102,12 +112,28 @@ class SessionManager {
     this.reconnectTimers.delete(sessionId);
   }
 
+  isReconnectBlocked(sessionId) {
+    const until = this.reconnectBlockedUntil.get(sessionId);
+    if (!until) return false;
+    if (until === Infinity || until > Date.now()) return true;
+    this.reconnectBlockedUntil.delete(sessionId);
+    this.reconnectAttempts.delete(sessionId);
+    return false;
+  }
+
+  blockReconnect(sessionId, durationMs = config.reconnectCooldownMs) {
+    this.clearReconnectTimer(sessionId);
+    const until = durationMs === Infinity ? Infinity : Date.now() + durationMs;
+    this.reconnectBlockedUntil.set(sessionId, until);
+  }
+
   startReconciler() {
     if (this.reconcileTimer || config.authStorage !== 'database') return;
     this.reconcileTimer = setInterval(async () => {
       try {
         const ids = await listDatabaseAuthSessionIds();
         for (const sessionId of ids) {
+          if (this.reconnectTimers.has(sessionId) || this.isReconnectBlocked(sessionId)) continue;
           const holder = this.sessions.get(sessionId);
           if (!holder || holder.state === 'disconnected') {
             this.connect(sessionId).catch((error) => logger.warn({ sessionId, error: error.message }, 'DB session reconcile failed'));
@@ -222,6 +248,7 @@ class SessionManager {
 
       if (connection === 'open' && this.sessions.get(sessionId) === holder) {
         this.reconnectAttempts.delete(sessionId);
+        this.reconnectBlockedUntil.delete(sessionId);
         this.clearReconnectTimer(sessionId);
         holder.state = 'connected';
         holder.qr = null;
@@ -236,15 +263,38 @@ class SessionManager {
         if (this.sessions.get(sessionId) !== holder) return;
 
         const statusCode = lastDisconnect?.error?.output?.statusCode || lastDisconnect?.error?.statusCode || 0;
+        const terminalDisconnect = holder.manualLogout || TERMINAL_DISCONNECT_CODES.has(statusCode);
+        const preserveAuthReconnect = !holder.manualLogout && PRESERVE_AUTH_RECONNECT_CODES.has(statusCode);
         const loggedOut = statusCode === DisconnectReason.loggedOut || holder.manualLogout;
         this.sessions.delete(sessionId);
         holder.state = 'disconnected';
+
+        if (preserveAuthReconnect) {
+          logger.warn({ sessionId, statusCode }, 'WhatsApp connection was replaced/conflicted; preserving auth and using bounded reconnect');
+        }
+
+        if (terminalDisconnect) {
+          this.reconnectAttempts.delete(sessionId);
+          this.blockReconnect(sessionId, Infinity);
+          try {
+            if (config.authStorage === 'database') await deleteDatabaseAuth(sessionId);
+            else await fsp.rm(this.sessionPath(sessionId), { recursive: true, force: true });
+          } catch (error) {
+            logger.error({ sessionId, statusCode, error: error.message }, 'Failed to discard terminal WhatsApp auth state');
+          }
+        }
+
+        const autoReconnect = !terminalDisconnect
+          ? this.scheduleReconnect(sessionId, { stopAfterLimit: preserveAuthReconnect })
+          : false;
         await report('device.disconnected', sessionId, {
           logged_out: loggedOut,
           status_code: statusCode || null,
+          terminal_disconnect: terminalDisconnect,
+          auth_preserved: preserveAuthReconnect,
+          auto_reconnect: autoReconnect,
           error: lastDisconnect?.error?.message || null,
         });
-        if (!loggedOut) this.scheduleReconnect(sessionId);
       }
     });
 
@@ -317,27 +367,39 @@ class SessionManager {
     return this.status(sessionId);
   }
 
-  scheduleReconnect(sessionId) {
+  scheduleReconnect(sessionId, { stopAfterLimit = false } = {}) {
     sessionId = validateSessionId(sessionId);
-    if (this.reconnectTimers.has(sessionId)) return;
+    if (this.reconnectTimers.has(sessionId) || this.isReconnectBlocked(sessionId)) return false;
     const attempts = (this.reconnectAttempts.get(sessionId) || 0) + 1;
     this.reconnectAttempts.set(sessionId, attempts);
+    if (attempts > config.reconnectMaxAttempts) {
+      if (stopAfterLimit) {
+        this.blockReconnect(sessionId, Infinity);
+        logger.error({ sessionId, attempts }, 'Repeated WhatsApp conflict; auth preserved and automatic reconnect stopped until service/device is restarted manually');
+      } else {
+        this.blockReconnect(sessionId, config.reconnectCooldownMs);
+        logger.warn({ sessionId, attempts, cooldownMs: config.reconnectCooldownMs }, 'Reconnect limit reached; entering cooldown');
+      }
+      return false;
+    }
     const delay = Math.min(config.reconnectMaxMs, config.reconnectMinMs * 2 ** Math.min(attempts - 1, 6));
     const timer = setTimeout(() => {
       this.reconnectTimers.delete(sessionId);
       this.connect(sessionId).catch((error) => {
         logger.warn({ sessionId, error: error.message, attempts }, 'Reconnect failed');
-        this.scheduleReconnect(sessionId);
+        this.scheduleReconnect(sessionId, { stopAfterLimit });
       });
     }, delay);
     timer.unref?.();
     this.reconnectTimers.set(sessionId, timer);
+    return true;
   }
 
   async logout(sessionId) {
     sessionId = validateSessionId(sessionId);
     this.clearReconnectTimer(sessionId);
     this.reconnectAttempts.delete(sessionId);
+    this.blockReconnect(sessionId, Infinity);
     const holder = this.get(sessionId);
     if (holder?.socket) {
       holder.manualLogout = true;
@@ -354,6 +416,7 @@ class SessionManager {
     sessionId = validateSessionId(sessionId);
     this.clearReconnectTimer(sessionId);
     this.reconnectAttempts.delete(sessionId);
+    this.blockReconnect(sessionId, Infinity);
     const holder = this.get(sessionId);
     if (holder?.socket) {
       holder.manualLogout = true;

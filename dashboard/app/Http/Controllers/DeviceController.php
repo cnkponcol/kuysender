@@ -87,7 +87,14 @@ class DeviceController extends Controller
         try { $wa->logoutDevice($device->id); } catch (\Throwable $e) {
             return response()->json(['message' => $e->getMessage()], 502);
         }
-        $device->update(['status' => 'STOPPED', 'connection_state' => 'disconnected', 'qr_code' => null, 'qr_expires_at' => null]);
+        $device->update([
+            'status' => 'STOPPED',
+            'connection_state' => 'disconnected',
+            'whatsapp_number' => null,
+            'qr_code' => null,
+            'qr_expires_at' => null,
+            'last_error' => null,
+        ]);
         return response()->json(['message' => 'WhatsApp session logged out.']);
     }
 }

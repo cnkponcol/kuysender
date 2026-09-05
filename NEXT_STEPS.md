@@ -21,8 +21,13 @@ Jangan sekadar melakukan `chown` cache berulang karena PHP-FPM `www-data` akan m
 - Tandai baseline stabil di `CHANGELOG.md`.
 - Push repository ke remote backup/version control agar kehilangan source terbaru tidak terulang.
 
-## Current blocker: outbound private-message error 463
-- Do not repeatedly retry failed private sends while WhatsApp returns 463.
-- Verify the connected WhatsApp account can manually reply to the same warm contact from the official WhatsApp app.
-- If manual app reply works, treat this as Baileys protocol blocker and track upstream warm-contact 463 fixes before another library change.
-- If manual app reply also fails, the WhatsApp account itself is reach-out restricted and must recover before KuySender outbound can be validated.
+## Current outbound state
+- The old 463 blocker is resolved on the fresh Baileys rc14 session.
+- Current API/outbound path is healthy; latest verified outbound status is `server_ack`.
+- If a future outbound failure appears, verify the specific contact/session and error before changing Baileys or reconnect logic.
+
+## Session recovery after conflict fix
+- Pair device `kuskuskuy` satu kali lagi melalui QR dashboard karena auth lama sudah terhapus sebelum patch 2026-08-30.
+- Setelah pairing, verifikasi restart service dapat restore session dari database tanpa QR ulang.
+- Pantau bila muncul `connectionReplaced`/440; auth sekarang harus tetap ada dan reconnect harus bounded, bukan dihapus.
+- Jika conflict berulang sampai auto-reconnect berhenti, cari sumber socket/session ganda sebelum melakukan reconnect manual.

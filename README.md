@@ -36,7 +36,7 @@ curl http://127.0.0.1:5570/health
 ```
 
 ## Dependency
-WA service memakai exact pin `@whiskeysockets/baileys` **6.7.24**.
+WA service memakai exact pin `@whiskeysockets/baileys` **7.0.0-rc14**.
 
 ```bash
 cd /home/openclaw/apps/kuysender/wa-service
@@ -62,6 +62,13 @@ php artisan migrate --force
 5. Setelah connected, lakukan live test Inbox dan Auto Reply.
 
 Auth Baileys baseline disimpan pada database terenkripsi.
+
+### Safe reconnect
+- Reconnect transient memakai backoff konservatif 15 detik sampai maksimum 120 detik.
+- Maksimum 5 percobaan per siklus; setelah itu session cooldown 15 menit sebelum mencoba lagi.
+- Reconciler tidak boleh mem-bypass timer/cooldown reconnect.
+- Status terminal (`loggedOut`, `forbidden`, `multideviceMismatch`, `connectionReplaced`, `badSession`) menghentikan auto-reconnect dan membuang auth lama agar tidak direplay.
+- Logout/remove dari dashboard memblokir reconnect untuk session lama. Pair ulang harus dilakukan secara eksplisit sebagai session baru.
 
 ## Contacts
 Phonebook mendukung manual contact, XLSX import/export existing, Sync WhatsApp Contacts, Sync WhatsApp Groups, dan Auto Contacts dari incoming chat. Hasil import/sync tetap `consent=unknown`; broadcast hanya untuk explicit opt-in. `wa_jid` disimpan bila tersedia agar phone JID maupun LID dapat dipakai benar.

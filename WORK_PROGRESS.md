@@ -107,3 +107,42 @@
 - Inbox mobile dibuat full-width seperti chat app dengan composer dan bubble yang mengikuti viewport.
 - Blade compile PASS, CSS brace validation PASS, git diff check PASS, mobile stylesheet HTTP 200.
 
+## 2026-08-29 - Safe reconnect hardening
+- Audit menemukan risiko reconnect loop: session terminal yang sudah hilang dari memory masih dapat dihidupkan kembali oleh DB reconciler karena auth database tetap ada.
+- Reconciler sekarang menghormati reconnect timer dan cooldown; tidak lagi mem-bypass backoff.
+- Reconnect transient diubah menjadi 15s -> 30s -> 60s -> 120s, maksimum 5 percobaan per siklus, lalu cooldown 15 menit.
+- Disconnect terminal 401/403/411/440/500 menghentikan auto-reconnect dan membuang auth lama sehingga session revoked/suspended/bad tidak direplay.
+- Logout/remove manual sekarang memasang reconnect block sebelum socket/auth dibersihkan.
+- `connection === open` mereset attempt, timer, dan reconnect block.
+- `npm run check`: PASS. Safe reconnect cooldown logic test: PASS.
+- Service restart: PASS; health OK dengan 0 active/connected session sesuai kondisi logout saat ini.
+- Backup sebelum perubahan: `/home/openclaw/kuysender-backups/20260829-233833-pre-safe-reconnect`.
+
+## 2026-08-30 - Timezone normalization
+- Found MySQL session `NOW()` did not match Laravel `now()` / WIB because MySQL was still using a stale SYSTEM timezone from an earlier server start.
+- Added MySQL connection timezone `+07:00` in `dashboard/config/database.php` with `DB_TIMEZONE` override support.
+- Cleared Laravel config cache and restarted `kuysender-queue.service` by terminating the worker process; systemd restored it automatically.
+- Verification PASS: Laravel `now()` and DB `NOW()` match exactly in WIB; DB session timezone reports `+07:00`.
+- Latest outbound message status after the change is `server_ack`.
+- Checkpoint: `/home/openclaw/kuysender-backups/20260830-0223-timezone/`.
+
+## 2026-08-30 - Conflict-safe WhatsApp session persistence
+- Root cause disconnect ditemukan: Baileys `Stream Errored (conflict)` dipetakan ke `connectionReplaced` / status 440.
+- Logic sebelumnya menganggap 440 sebagai terminal disconnect dan menghapus `wa_auth_sessions` + `wa_auth_keys`, sehingga session tidak dapat dipulihkan.
+- Status 440 sekarang dikeluarkan dari terminal-disconnect set; auth database dipertahankan.
+- Conflict memakai bounded reconnect dengan backoff existing 15s -> 30s -> 60s -> 120s.
+- Jika conflict terus berulang melewati batas retry, reconnect otomatis dihentikan in-memory tanpa menghapus auth.
+- Terminal logout/protection untuk 401, 403, 411, dan 500 tetap dipertahankan.
+- Payload disconnect sekarang menyertakan `auth_preserved` dan nilai `auto_reconnect` aktual.
+- `npm run check`: PASS. Logic test bounded conflict reconnect: PASS.
+- `kuysender-wa.service` restarted: PASS; `/health` OK.
+- Auth lama sudah terhapus oleh behavior sebelum patch, jadi perlu satu kali QR pairing baru.
+- Checkpoint: `/home/openclaw/kuysender-backups/20260830-140446-pre-conflict-session-fix/`.
+
+## 2026-08-30 - KuySender public landing at /home
+- Deployed the Next.js KuySender landing page from `/home/openclaw/dev/kuysender-landing` into the production KuySender app.
+- Landing is exposed publicly at `https://wa.kuskuskuy.my.id/home` without changing the authenticated dashboard root flow.
+- Next.js is built as a static export for production; static runtime assets live under `dashboard/public/landing-home` and the HTML entry is served by a dedicated public Laravel route.
+- Existing `/` behavior remains protected and redirects unauthenticated users to `/login`; `/login` remains healthy.
+- Verification PASS: `/home` HTTP 200, CSS HTTP 200, Kuskuskuy logo HTTP 200, Laravel route syntax PASS, route registration PASS.
+- Deployment checkpoint: `/home/openclaw/kuysender-backups/20260830-2345-home-landing`.

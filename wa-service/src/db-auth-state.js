@@ -5,6 +5,16 @@ const config = require('./config');
 
 let pool;
 const authLocks = new Map();
+const revokedAuthSessions = new Set();
+const authGenerations = new Map();
+
+function authIsRevoked(sessionId) {
+  return revokedAuthSessions.has(sessionId);
+}
+
+function generationIsCurrent(sessionId, generation) {
+  return !authIsRevoked(sessionId) && authGenerations.get(sessionId) === generation;
+}
 
 function withAuthLock(sessionId, fn) {
   const previous = authLocks.get(sessionId) || Promise.resolve();
@@ -54,8 +64,9 @@ function decode(payload) {
   const plain = Buffer.concat([decipher.update(Buffer.from(data64, 'base64')), decipher.final()]);
   return JSON.parse(plain.toString('utf8'), BufferJSON.reviver);
 }
-async function saveSessionCreds(sessionId, creds) {
+async function saveSessionCreds(sessionId, creds, generation) {
   return withAuthLock(sessionId, async () => {
+    if (!generationIsCurrent(sessionId, generation)) return;
     const payload = encode(creds);
     await db().execute(
       `INSERT INTO wa_auth_sessions (session_id,payload,cipher,format_version,created_at,updated_at)
@@ -66,9 +77,10 @@ async function saveSessionCreds(sessionId, creds) {
   });
 }
 
-async function getKeys(sessionId, type, ids) {
-  if (!Array.isArray(ids) || ids.length === 0) return {};
+async function getKeys(sessionId, type, ids, generation) {
+  if (!Array.isArray(ids) || ids.length === 0 || !generationIsCurrent(sessionId, generation)) return {};
   return withAuthLock(sessionId, async () => {
+    if (!generationIsCurrent(sessionId, generation)) return {};
     const placeholders = ids.map(() => '?').join(',');
     const [rows] = await db().execute(
       `SELECT key_id,payload FROM wa_auth_keys
@@ -86,8 +98,9 @@ async function getKeys(sessionId, type, ids) {
     return result;
   });
 }
-async function setKeys(sessionId, data) {
+async function setKeys(sessionId, data, generation) {
   return withAuthLock(sessionId, async () => {
+    if (!generationIsCurrent(sessionId, generation)) return;
     const connection = await db().getConnection();
     try {
       await connection.beginTransaction();
@@ -118,6 +131,10 @@ async function setKeys(sessionId, data) {
   });
 }
 async function useDatabaseAuthState(sessionId) {
+  // Every connect gets a new generation so stale sockets cannot write old auth state.
+  const generation = (authGenerations.get(sessionId) || 0) + 1;
+  authGenerations.set(sessionId, generation);
+  revokedAuthSessions.delete(sessionId);
   const [rows] = await withAuthLock(sessionId, () =>
     db().execute('SELECT payload FROM wa_auth_sessions WHERE session_id=? LIMIT 1', [sessionId])
   );
@@ -126,15 +143,18 @@ async function useDatabaseAuthState(sessionId) {
     state: {
       creds,
       keys: {
-        get: (type, ids) => getKeys(sessionId, type, ids),
-        set: (data) => setKeys(sessionId, data),
+        get: (type, ids) => getKeys(sessionId, type, ids, generation),
+        set: (data) => setKeys(sessionId, data, generation),
       },
     },
-    saveCreds: () => saveSessionCreds(sessionId, creds),
+    saveCreds: () => saveSessionCreds(sessionId, creds, generation),
   };
 }
 
 async function deleteDatabaseAuth(sessionId) {
+  // Block late Baileys auth writes from recreating a session after logout.
+  revokedAuthSessions.add(sessionId);
+  authGenerations.set(sessionId, (authGenerations.get(sessionId) || 0) + 1);
   return withAuthLock(sessionId, async () => {
     const connection = await db().getConnection();
     try {
