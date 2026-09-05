@@ -48,15 +48,21 @@ backups/
 
 # HERMES SECURE BACKUP
 .env
-.env.local
-.env.production
-.env.development
+.env.*
+!.env.example
+!env.example
+*.pem
+*.key
+*.p12
+*.pfx
 *.sql
 *.sqlite
+*.sqlite3
 *.db
 *.zip
 *.tar
 *.tar.gz
 *.bak
+*.backup
 node_modules/
 vendor/
